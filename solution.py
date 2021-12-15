@@ -1,12 +1,14 @@
-
 from socket import *
 import os
 import sys
 import struct
 import time
 import select
-
 import binascii
+
+from statistics import stdev
+from statistics import mean
+
 # Should use stdev
 
 ICMP_ECHO_REQUEST = 8
@@ -35,7 +37,6 @@ def checksum(string):
     return answer
 
 
-
 def receiveOnePing(mySocket, ID, timeout, destAddr):
     timeLeft = timeout
 
@@ -49,37 +50,39 @@ def receiveOnePing(mySocket, ID, timeout, destAddr):
         timeReceived = time.time()
         recPacket, addr = mySocket.recvfrom(1024)
 
-       # Fill in start
+        # Fill in start
         icmpHeader = recPacket[20:28]
-        icmpType, code, mychecksum, packetID, sequence = struct.unpack("bbHHh", icmpHeader)
-        if type !=8 and packetID == ID:
+        type, code, mychecksum, packetID, sequence = struct.unpack("bbHHh", icmpHeader)
+        if type != 8 and packetID == ID:
             bytesInDouble = struct.calcsize("d")
+
             timeSent = struct.unpack("d", recPacket[28:28 + bytesInDouble])[0]
-            return timeReceived - timeSent
 
-       # Fetch the ICMP header from the IP packet
+        return timeReceived - timeSent
 
-       # Fill in end
+        # Fetch the ICMP header from the IP packet
+
+        # Fill in end
         timeLeft = timeLeft - howLongInSelect
         if timeLeft <= 0:
             return "Request timed out."
 
 
 def sendOnePing(mySocket, destAddr, ID):
-   # Header is type (8), code (8), checksum (16), id (16), sequence (16)
+    # Header is type (8), code (8), checksum (16), id (16), sequence (16)
 
     myChecksum = 0
-   # Make a dummy header with a 0 checksum
-   # struct -- Interpret strings as packed binary data
+    # Make a dummy header with a 0 checksum
+    # struct -- Interpret strings as packed binary data
     header = struct.pack("bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
     data = struct.pack("d", time.time())
-   # Calculate the checksum on the data and the dummy header.
+    # Calculate the checksum on the data and the dummy header.
     myChecksum = checksum(header + data)
 
-   # Get the right checksum, and put in the header
+    # Get the right checksum, and put in the header
 
     if sys.platform == 'darwin':
-       # Convert 16-bit integers from host to network  byte order
+        # Convert 16-bit integers from host to network  byte order
         myChecksum = htons(myChecksum) & 0xffff
     else:
         myChecksum = htons(myChecksum)
@@ -89,8 +92,9 @@ def sendOnePing(mySocket, destAddr, ID):
 
     mySocket.sendto(packet, (destAddr, 1))  # AF_INET address must be tuple, not str
 
-   # Both LISTS and TUPLES consist of a number of objects
-   # which can be referenced by their position number within the object.
+
+# Both LISTS and TUPLES consist of a number of objects
+# which can be referenced by their position number within the object.
 
 
 def doOnePing(destAddr, timeout):
@@ -109,20 +113,33 @@ def doOnePing(destAddr, timeout):
 def ping(host, timeout=1):
     # timeout=1 means: If one second goes by without a reply from the server,      # the client assumes that either the client's ping or the server's pong is lost
     dest = gethostbyname(host)
-    #print("Pinging " + dest + " using Python:")
-    #print("")
-   # Calculate vars values and return them
-   #  vars = [str(round(packet_min, 2)), str(round(packet_avg, 2)), str(round(packet_max, 2)),str(round(stdev(stdev_var), 2))]
-   # Send ping requests to a server separated by approximately one second
-    for i in range(0,4):
+    print("Pinging " + dest + " using Python:")
+    print("")
+    loop = 0
+    packet_min = 0
+    packet_avg = 0
+    packet_max = 0
+    stdev_var = []
+
+    for i in range(0, 4):
         delay = doOnePing(dest, timeout)
-        #print(delay)
+        stdev_var.append(delay)
+
         time.sleep(1)  # one second
+
+    packet_min = min(stdev_var)
+    packet_max = max(stdev_var)
+    packet_avg = mean(stdev_var)
+    # Calculate vars values and return them
+    vars = [str(round(packet_min, 2)), str(round(packet_avg, 2)), str(round(packet_max, 2)),
+            str(round(stdev(stdev_var), 2))]
+    # Send ping requests to a server separated by approximately one second
 
     return vars
 
+
 if __name__ == '__main__':
-    ping("google.co.il")
+    ping("127.0.0.1")
 
 
 
