@@ -135,8 +135,8 @@ def ping(host, timeout=1):
         vars = ['0', '0.0', '0', '0.0']
     else:
 
-        vars = [str(round(packet_min, 2)), str(round(packet_avg, 2)), str(round(packet_max, 2)),
-            str(round(stdev(stdev_var), 2))]
+        vars = [str(packet_min), str(packet_avg), str(packet_max),
+            str(stdev(stdev_var))]
     # Send ping requests to a server separated by approximately one second
 
     print(vars)
