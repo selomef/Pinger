@@ -131,10 +131,15 @@ def ping(host, timeout=1):
     packet_max = max(stdev_var)
     packet_avg = mean(stdev_var)
     # Calculate vars values and return them
-    vars = [str(round(packet_min, 2)), str(round(packet_avg, 2)), str(round(packet_max, 2)),
+    if all(value == "Request timed out." for value in stdev_var):
+        vars = ['0', '0.0', '0', '0.0']
+    else:
+
+        vars = [str(round(packet_min, 2)), str(round(packet_avg, 2)), str(round(packet_max, 2)),
             str(round(stdev(stdev_var), 2))]
     # Send ping requests to a server separated by approximately one second
 
+    print(vars)
     return vars
 
 
